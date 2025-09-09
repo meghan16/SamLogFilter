@@ -1,0 +1,20 @@
+{
+  "name": "chat-quickstart",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@azure/identity": "^4.11.1",
+    "express": "^5.1.0",
+    "multer": "^2.0.2",
+    "openai": "^5.16.0"
+  }
+}

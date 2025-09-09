@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log Filter Assistant</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      box-sizing: border-box;
+    }
+    body {
+      min-height: 100vh;
+      min-width: 100vw;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+    }
+    .container {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      width: 100vw;
+      height: 100vh;
+      background: #fff;
+      padding: 2vw 2vw 2vw 2vw;
+      box-sizing: border-box;
+      overflow: auto;
+    }
+    h2 {
+      text-align: center;
+      margin-top: 0;
+      font-size: 2.2vw;
+    }
+    label {
+      display: block;
+      margin-top: 1.2vw;
+      font-weight: bold;
+      font-size: 1.1vw;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      max-width: 600px;
+      padding: 0.7vw;
+      margin-top: 0.7vw;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      font-size: 1vw;
+    }
+    input[type="file"] {
+      margin-top: 0.7vw;
+      font-size: 1vw;
+    }
+    button {
+      margin-top: 1.5vw;
+      padding: 0.7vw 2vw;
+      background: #0078d4;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1.2vw;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    #output {
+      margin-top: 2vw;
+      background: #f1f1f1;
+      padding: 1vw;
+      border-radius: 4px;
+      min-height: 300px;
+      width: 100%;
+      max-width: 1200px;
+      max-height: 60vh;
+      overflow: auto;
+      box-sizing: border-box;
+      font-size: 1vw;
+      resize: vertical;
+    }
+    form {
+      width: 100%;
+      max-width: 600px;
+    }
+    .input-row {
+      display: flex;
+      flex-direction: row;
+      gap: 2vw;
+      width: 100%;
+      max-width: 1200px;
+      margin-bottom: 2vw;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .file-group {
+      width: 25%;
+      max-width: none;
+      min-width: 120px;
+    }
+    .dropdown-group {
+      width: 25%;
+      max-width: none;
+      min-width: 120px;
+    }
+    .text-group {
+      width: 50%;
+      max-width: none;
+      min-width: 180px;
+    }
+    .input-group label {
+      margin-top: 0;
+      margin-bottom: 0.5vw;
+      font-size: 1vw;
+    }
+    .input-group input[type="file"],
+    .input-group select,
+    .input-group textarea {
+      font-size: 1vw;
+      width: 100%;
+      max-width: none;
+      margin-top: 0;
+      margin-bottom: 0;
+      box-sizing: border-box;
+    }
+    .button-row {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1vw;
+    }
+    @media (max-width: 900px) {
+      .input-row {
+        flex-direction: column;
+        gap: 1vw;
+        max-width: 98vw;
+      }
+      .input-group label,
+      .input-group input[type="file"],
+      .input-group select,
+      .input-group textarea {
+        font-size: 3vw !important;
+      }
+      .file-group, .dropdown-group, .text-group {
+        max-width: none;
+      }
+      .button-row {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Log Filter Assistant</h2>
+      <form id="logForm">
+        <!-- Form is now empty, inputs are outside for layout control -->
+      </form>
+      <div class="input-row">
+        <div class="input-group file-group">
+          <label for="logFile">Attach Log File:</label>
+          <input type="file" id="logFile" accept=".txt,.log" required>
+        </div>
+        <div class="input-group dropdown-group">
+          <label for="subsystems">Subsystems:</label>
+          <select id="subsystems" multiple>
+            <option value="battery">battery</option>
+            <option value="soc">soc</option>
+            <option value="power">power</option>
+            <option value="kip">kip</option>
+            <option value="sensor">sensor</option>
+          </select>
+        </div>
+        <div class="input-group text-group">
+          <label for="keywords">Additional Keywords:</label>
+          <textarea id="keywords" rows="3" placeholder="Enter keywords..."></textarea>
+        </div>
+      </div>
+      <div class="button-row">
+        <button type="submit" form="logForm">Submit</button>
+      </div>
+  <!-- Removed accidentally printed CSS from body -->
+    <div id="output"></div>
+  </div>
+  <script>
+    document.getElementById('logForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const fileInput = document.getElementById('logFile');
+      const keywords = document.getElementById('keywords').value.trim();
+      const outputDiv = document.getElementById('output');
+      outputDiv.textContent = 'Processing...';
+
+      const subsystemsSelect = document.getElementById('subsystems');
+      const selectedKeywords = Array.from(subsystemsSelect.selectedOptions).map(opt => opt.value);
+      let combinedKeywords = selectedKeywords.join(' , ');
+      if (keywords) {
+        combinedKeywords = combinedKeywords ? (combinedKeywords + ' , ' + keywords) : keywords;
+      }
+      console.log('Submitted keywords:', combinedKeywords);
+      if (!fileInput.files[0] || !combinedKeywords) {
+        outputDiv.textContent = 'Please attach a log file and select or enter keywords.';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('logFile', fileInput.files[0]);
+      formData.append('keywords', combinedKeywords);
+
+      try {
+        const response = await fetch('/api/process', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await response.json();
+        if (response.ok) {
+          outputDiv.innerHTML = data.output || 'No output.';
+        } else {
+          outputDiv.textContent = data.error || 'Error processing request.';
+        }
+      } catch (err) {
+        outputDiv.textContent = 'Error: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
