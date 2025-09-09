@@ -5,14 +5,22 @@ const { DefaultAzureCredential, getBearerTokenProvider } = require("@azure/ident
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT || "https://msaitwal-foundry.openai.azure.com/";
 const apiVersion = process.env.OPENAI_API_VERSION || "2024-05-01-preview";
 const deployment = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || "gpt-4o-mini"; // This must match your deployment name.
+const openaiApiKey = process.env.OPENAI_API_KEY || "Dp2acyrPsoIsfhHpdXYfFjlO9RLT2Q9x9eQvqA2DyyPWx4PocR8vJQQJ99BHACYeBjFXJ3w3AAAAACOGDcAJ";
 
-// Keyless authentication
+// Keyless authentication for Azure
 const credential = new DefaultAzureCredential();
 const scope = "https://cognitiveservices.azure.com/.default";
 const azureADTokenProvider = getBearerTokenProvider(credential, scope);
 
 async function main(logContent, keywords) {
-  const client = new AzureOpenAI({ endpoint, apiVersion, azureADTokenProvider, deployment });
+  let client;
+  if (openaiApiKey) {
+    // Use AzureOpenAI with API key
+    client = new AzureOpenAI({ endpoint, apiVersion, apiKey: openaiApiKey, deployment });
+  } else {
+    // Use AzureOpenAI with Azure AD token provider
+    client = new AzureOpenAI({ endpoint, apiVersion, azureADTokenProvider, deployment });
+  }
   const result = await client.chat.completions.create({
     messages: [
       { role: "system", content: "You are smart log filtering assistant." },
