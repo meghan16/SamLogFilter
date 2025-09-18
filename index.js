@@ -21,20 +21,36 @@ async function main(logContent, keywords) {
     // Use AzureOpenAI with Azure AD token provider
     client = new AzureOpenAI({ endpoint, apiVersion, azureADTokenProvider, deployment });
   }
-  const result = await client.chat.completions.create({
-    messages: [
-      { role: "system", content: "You are smart log filtering assistant." },
-      { role: "user", content: logContent },
-      { role: "user", content: "Filter all lines related or containing any of " + keywords + " from above logs. Do not show results for keywords separately." },
-    ],
-    model: "",
-  });
-  let output = "";
-  for (const choice of result.choices) {
-    output += choice.message.content + "\n";
+
+  // Split keywords by ',' or '+' and trim whitespace
+  const keywordList = keywords
+    .split(/[,\+]/)
+    .map(k => k.trim())
+    .filter(Boolean);
+  // Collect all filtered lines from all keywords
+  let allFilteredLines = [];
+  for (const keyword of keywordList) {
+    const result = await client.chat.completions.create({
+      messages: [
+        { role: "system", content: "You are smart log filtering assistant." },
+        { role: "user", content: logContent },
+        { role: "user", content: `Filter all lines related or containing '${keyword}' from above logs. Show only the filtered lines for this keyword, one per line, no extra text.` },
+      ],
+      model: "",
+    });
+    for (const choice of result.choices) {
+      // Split by line, trim, and collect
+      const lines = choice.message.content.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      allFilteredLines.push(...lines);
+    }
   }
+  // Remove duplicates
+  const uniqueLines = Array.from(new Set(allFilteredLines));
+  // Re-arrange based on original log order
+  const logLines = logContent.split(/\r?\n/).map(l => l.trim());
+  const ordered = logLines.filter(line => uniqueLines.includes(line));
   // Wrap output in Markdown code block for formatting
-  return `\n<pre><code>${output.trim()}</code></pre>`;
+  return `\n<pre><code>${ordered.join("\n")}</code></pre>`;
 }
 
 // main() is now used by server.js for API calls
