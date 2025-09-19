@@ -30,18 +30,35 @@ async function main(logContent, keywords) {
   // Collect all filtered lines from all keywords
   let allFilteredLines = [];
   for (const keyword of keywordList) {
-    const result = await client.chat.completions.create({
-      messages: [
-        { role: "system", content: "You are smart log filtering assistant." },
-        { role: "user", content: logContent },
-        { role: "user", content: `Filter all lines related or containing '${keyword}' from above logs. Show only the filtered lines for this keyword, one per line, no extra text.` },
-      ],
-      model: "",
-    });
-    for (const choice of result.choices) {
-      // Split by line, trim, and collect
-      const lines = choice.message.content.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-      allFilteredLines.push(...lines);
+    // Always perform a local, case-insensitive substring match so we never miss lines
+    const logLinesOriginal = logContent.split(/\r?\n/); // keep original spacing (trim later for ordering)
+    const kwLower = keyword.toLowerCase();
+    for (const ln of logLinesOriginal) {
+      if (ln.toLowerCase().includes(kwLower)) {
+        allFilteredLines.push(ln.trim());
+      }
+    }
+
+    // Also ask the model for "related" lines (context-aware) but instruct it to preserve original lines exactly.
+    try {
+      const result = await client.chat.completions.create({
+        messages: [
+          { role: "system", content: "You are a precise log filtering assistant. Always return exact original log lines verbatim without modification." },
+          { role: "user", content: logContent },
+          { role: "user", content: `Filter (case-insensitive) all original log lines that are related to OR contain the keyword '${keyword}'. Return ONLY the exact original lines (no reformatting, no added text), one per line. If none, return nothing.` },
+        ],
+        model: "",
+      });
+      for (const choice of result.choices) {
+        const lines = choice.message.content
+          .split(/\r?\n/)
+          .map(l => l.trim())
+          .filter(Boolean);
+        allFilteredLines.push(...lines);
+      }
+    } catch (err) {
+      // Swallow model errors so local matching still works
+      // console.warn("Model filtering failed for keyword", keyword, err.message);
     }
   }
   // Remove duplicates

@@ -192,6 +192,11 @@
         </div>
       </div>
       <div class="button-row">
+        <!-- showFullLog feature temporarily disabled
+        <label style="font-size:0.9vw;display:flex;align-items:center;gap:0.5vw;">
+          <input type="checkbox" id="showFullLog"> Console full log
+        </label>
+        -->
         <button type="submit" form="logForm">Submit</button>
       </div>
   <!-- Removed accidentally printed CSS from body -->
@@ -200,7 +205,8 @@
   <script>
     document.getElementById('logForm').addEventListener('submit', async function(e) {
       e.preventDefault();
-      const fileInput = document.getElementById('logFile');
+  const fileInput = document.getElementById('logFile');
+  // const showFull = document.getElementById('showFullLog').checked; // disabled
       const keywords = document.getElementById('keywords').value.trim();
       const outputDiv = document.getElementById('output');
       outputDiv.textContent = 'Processing...';
@@ -217,24 +223,39 @@
         return;
       }
 
-      const formData = new FormData();
-      formData.append('logFile', fileInput.files[0]);
-      formData.append('keywords', combinedKeywords);
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        const rawLog = evt.target.result || '';
+        const preview = rawLog.slice(0, 500);
+        console.log('[Frontend LogFilter] Log length =', rawLog.length);
+        console.log('[Frontend LogFilter] Preview:', preview + (rawLog.length > 500 ? '...<truncated>' : ''));
+        // if (showFull) { // disabled
+        //   console.log('[Frontend LogFilter] ---- FULL LOG START ----');
+        //   console.log(rawLog);
+        //   console.log('[Frontend LogFilter] ---- FULL LOG END ----');
+        // }
 
-      try {
-        const response = await fetch('/api/process', {
-          method: 'POST',
-          body: formData
-        });
-        const data = await response.json();
-        if (response.ok) {
-          outputDiv.innerHTML = data.output || 'No output.';
-        } else {
-          outputDiv.textContent = data.error || 'Error processing request.';
+        const formData = new FormData();
+        formData.append('logFile', file);
+        formData.append('keywords', combinedKeywords);
+
+        try {
+          const response = await fetch('/api/process', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await response.json();
+          if (response.ok) {
+            outputDiv.innerHTML = data.output || 'No output.';
+          } else {
+            outputDiv.textContent = data.error || 'Error processing request.';
+          }
+        } catch (err) {
+          outputDiv.textContent = 'Error: ' + err.message;
         }
-      } catch (err) {
-        outputDiv.textContent = 'Error: ' + err.message;
-      }
+      };
+      reader.readAsText(file);
     });
   </script>
 </body>
